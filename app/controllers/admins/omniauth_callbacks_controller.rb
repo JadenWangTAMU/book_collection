@@ -1,14 +1,26 @@
 class Admins::OmniauthCallbacksController < Devise::OmniauthCallbacksController
   def google_oauth2
-    admin = Admin.from_google(**from_google_params)
+    Rails.logger.info "=== Google OAuth2 callback hit ==="
+    Rails.logger.info "Auth hash: #{auth.inspect}"
 
-    if admin.present?
-      sign_out_all_scopes
-      flash[:success] = t 'devise.omniauth_callbacks.success', kind: 'Google'
-      sign_in_and_redirect admin, event: :authentication
-    else
-      flash[:alert] = t 'devise.omniauth_callbacks.failure', kind: 'Google', reason: "#{auth.info.email} is not authorized."
-      redirect_to new_admin_session_path
+    begin
+      admin = Admin.from_google(**from_google_params)
+      Rails.logger.info "Admin loaded: #{admin.inspect}"
+
+      if admin.present?
+        Rails.logger.info "Admin present. Signing in."
+        sign_out_all_scopes
+        flash[:success] = t 'devise.omniauth_callbacks.success', kind: 'Google'
+        sign_in_and_redirect admin, event: :authentication
+      else
+        Rails.logger.warn "Admin not authorized: #{auth.info.email}"
+        flash[:alert] = t 'devise.omniauth_callbacks.failure', kind: 'Google', reason: "#{auth.info.email} is not authorized."
+        redirect_to new_admin_session_path
+      end
+    rescue => e
+      Rails.logger.error "Omniauth Google callback error: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      redirect_to new_admin_session_path, alert: "Authentication failed: #{e.message}"
     end
   end
 
@@ -26,10 +38,10 @@ class Admins::OmniauthCallbacksController < Devise::OmniauthCallbacksController
 
   def from_google_params
     @from_google_params ||= {
-      uid: auth.uid,
-      email: auth.info.email,
-      full_name: auth.info.name,
-      avatar_url: auth.info.image
+      uid: auth&.uid,
+      email: auth&.info&.email,
+      full_name: auth&.info&.name,
+      avatar_url: auth&.info&.image
     }
   end
 
