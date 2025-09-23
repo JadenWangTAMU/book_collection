@@ -296,8 +296,17 @@ Devise.setup do |config|
   # so you need to do it manually. For the users scope, it would be:
   # config.omniauth_path_prefix = '/my_engine/users/auth'
 
-  config.omniauth :google_oauth2, ENV['GOOGLE_OAUTH_CLIENT_ID'],ENV['GOOGLE_OAUTH_CLIENT_SECRET']
-
+  if Rails.env.production?
+    config.omniauth :google_oauth2,
+      ENV['GOOGLE_OAUTH_CLIENT_ID'],
+      ENV['GOOGLE_OAUTH_CLIENT_SECRET'],
+      redirect_uri: "https://book-collect-test-enyvfd6dexqr.herokuapp.com/admins/auth/google_oauth2/callback"
+  else
+    config.omniauth :google_oauth2,
+      ENV['GOOGLE_OAUTH_CLIENT_ID'],
+      ENV['GOOGLE_OAUTH_CLIENT_SECRET']
+  end
+  
   # ==> Hotwire/Turbo configuration
   # When using Devise with Hotwire/Turbo, the http status for error responses
   # and some redirects must match the following. The default in Devise for existing
